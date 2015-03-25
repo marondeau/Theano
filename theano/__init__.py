@@ -29,14 +29,44 @@ __docformat__ = "restructuredtext en"
 import logging
 
 theano_logger = logging.getLogger("theano")
-logging_default_handler = logging.StreamHandler()
+
+# The user might not want the default logger, but we cannot know
+# without looking at config; Looking at config could cause logging.
+# We know the default handler would write to stderr, so we create a
+# temporary handler to write to a buffer. If the default handler is required, we
+# copy the content of the buffer to stderr and pretend nothing happened.
+import cStringIO as sio
+from sys import stderr as err
+temp_stream = sio.StringIO()
+logging_temp_handler = logging.StreamHandler(temp_stream)
+
 logging_default_formatter = logging.Formatter(
-    fmt='%(levelname)s (%(name)s): %(message)s')
-logging_default_handler.setFormatter(logging_default_formatter)
-theano_logger.addHandler(logging_default_handler)
+        fmt='%(levelname)s (%(name)s): %(message)s')
+logging_temp_handler.setFormatter(logging_default_formatter)
+theano_logger.addHandler(logging_temp_handler)
 theano_logger.setLevel(logging.WARNING)
 
-from theano.configdefaults import config
+try:
+    from theano.configdefaults import config
+except:
+    # An exception occurred, somehow.
+    # Rather than taking chances, we will dump the buffer
+    # to stderr. At this point, the user has other preoccupations
+    # than duplicated logs.
+    err.write(temp_stream.getvalue())
+    raise
+
+theano_logger.removeHandler(logging_temp_handler)
+del logging_temp_handler
+
+if config.handle_log:
+    err.write(temp_stream.getvalue())
+    logging_default_handler = logging.StreamHandler()
+    logging_default_handler.setFormatter(logging_default_formatter)
+    theano_logger.addHandler(logging_default_handler)
+
+del temp_stream, err, sio
+
 
 # Version information.
 from theano.version import version as __version__

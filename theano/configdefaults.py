@@ -57,6 +57,15 @@ AddConfigVar('int_division',
         EnumStr('int', 'raise', 'floatX'),
         in_c_key=False)
 
+AddConfigVar('handle_log',
+        "If True (default), the library will add a log handler. "
+        "Can be disabled if the user want to control the logs. "
+        "When disabled, the user must have setup a log handler "
+        "before importing theano.",
+        BoolParam(True, allow_override=False),
+        in_c_key=False)
+
+
 # gpu means let the driver select the gpu. Needed in case of gpu in
 # exclusive mode.
 # gpuX mean use the gpu number X.
